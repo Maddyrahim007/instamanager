@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Composer — InstaManager{% endblock %}
+{% block page_title %}Composer{% endblock %}
+
+{% block content %}
+<form action="{{ url_for('main.composer_post') }}" method="POST" class="max-w-4xl">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Left: Media & Caption -->
+        <div class="space-y-5">
+            <div class="glass-card">
+                <h3 class="text-lg font-semibold mb-4">Media URL</h3>
+                <p class="text-xs text-gray-500 mb-3">
+                    Enter a publicly accessible URL for your image or video.
+                    Instagram requires media to be hosted online (e.g. Cloudinary, S3, Imgur).
+                </p>
+                <input type="url" name="media_url" required placeholder="https://example.com/your-image.jpg"
+                    class="form-input" id="media-url-input">
+                
+                <!-- Preview -->
+                <div id="media-preview" class="mt-4 hidden">
+                    <img id="preview-img" src="" alt="Preview" class="rounded-xl max-h-64 object-cover w-full border border-white/10">
+                </div>
+
+                <div class="mt-4 px-3 py-2 bg-blue-500/5 border border-blue-500/10 rounded-lg">
+                    <p class="text-xs text-blue-300">
+                        💡 <strong>Tip:</strong> Use <a href="https://cloudinary.com" target="_blank" class="underline hover:text-blue-200">Cloudinary</a> (free) to host images.
+                        Upload your image there and paste the URL here.
+                    </p>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <h3 class="text-lg font-semibold mb-4">Caption</h3>
+                {% if templates %}
+                <div class="mb-3">
+                    <label class="block text-xs text-gray-400 mb-1.5">Load from Template</label>
+                    <select id="template-select" class="form-input text-sm" onchange="loadTemplate(this.value)">
+                        <option value="">— None —</option>
+                        {% for t in templates %}
+                        <option value="{{ t.id }}">{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <textarea name="caption" id="caption-field" rows="5" placeholder="Write your caption here... Use hashtags and emojis! 🚀" class="form-input resize-none"></textarea>
+                <p class="text-xs text-gray-500 mt-1"><span id="char-count">0</span> / 2,200 characters</p>
+            </div>
+        </div>
+
+        <!-- Right: Settings -->
+        <div class="space-y-5">
+            <div class="glass-card">
+                <h3 class="text-lg font-semibold mb-4">Media Type</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="radio-card">
+                        <input type="radio" name="media_type" value="IMAGE" checked class="hidden peer">
+                        <div class="p-3 rounded-xl border border-white/10 peer-checked:border-brand-500 peer-checked:bg-brand-500/10 text-center cursor-pointer transition-all hover:bg-white/[0.03]">
+                            <p class="text-sm font-medium">📷 Image</p>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="media_type" value="VIDEO" class="hidden peer">
+                        <div class="p-3 rounded-xl border border-white/10 peer-checked:border-brand-500 peer-checked:bg-brand-500/10 text-center cursor-pointer transition-all hover:bg-white/[0.03]">
+                            <p class="text-sm font-medium">🎥 Video</p>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="media_type" value="REELS" class="hidden peer">
+                        <div class="p-3 rounded-xl border border-white/10 peer-checked:border-brand-500 peer-checked:bg-brand-500/10 text-center cursor-pointer transition-all hover:bg-white/[0.03]">
+                            <p class="text-sm font-medium">🎬 Reel</p>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="media_type" value="STORIES" class="hidden peer">
+                        <div class="p-3 rounded-xl border border-white/10 peer-checked:border-brand-500 peer-checked:bg-brand-500/10 text-center cursor-pointer transition-all hover:bg-white/[0.03]">
+                            <p class="text-sm font-medium">📱 Story</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <h3 class="text-lg font-semibold mb-4">Select Accounts</h3>
+                <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                    {% for acc in accounts %}
+                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
+                        <input type="checkbox" name="account_ids" value="{{ acc.id }}" class="accent-brand-500 rounded">
+                        {% if acc.profile_picture_url %}
+                        <img src="{{ acc.profile_picture_url }}" class="w-7 h-7 rounded-full object-cover" alt="">
+                        {% else %}
+                        <div class="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-xs font-bold">{{ acc.ig_username[0]|upper }}</div>
+                        {% endif %}
+                        <span class="text-sm">@{{ acc.ig_username }}</span>
+                        <span class="ml-auto status-badge status-{{ acc.token_health }} text-[10px]">{{ acc.token_health }}</span>
+                    </label>
+                    {% else %}
+                    <p class="text-sm text-gray-500 text-center py-4">No active accounts. <a href="{{ url_for('main.accounts') }}" class="text-brand-400">Connect one →</a></p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <h3 class="text-lg font-semibold mb-4">When to Post</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="radio" name="action" value="now" checked class="accent-brand-500" onchange="toggleSchedule(false)">
+                        <span class="text-sm">Post Now</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="radio" name="action" value="schedule" class="accent-brand-500" onchange="toggleSchedule(true)">
+                        <span class="text-sm">Schedule</span>
+                    </label>
+                    <input type="datetime-local" name="schedule_time" id="schedule-time" class="form-input hidden">
+                </div>
+            </div>
+
+            <button type="submit" id="submit-post-btn" class="btn-primary w-full py-3 text-base">🚀 Publish via Graph API</button>
+        </div>
+    </div>
+</form>
+
+{% block scripts %}
+<script>
+    const captionField = document.getElementById('caption-field');
+    const charCount = document.getElementById('char-count');
+    if(captionField) captionField.addEventListener('input', () => charCount.textContent = captionField.value.length);
+
+    function toggleSchedule(show) {
+        document.getElementById('schedule-time').classList.toggle('hidden', !show);
+    }
+
+    // Media URL preview
+    const mediaInput = document.getElementById('media-url-input');
+    const previewContainer = document.getElementById('media-preview');
+    const previewImg = document.getElementById('preview-img');
+
+    if (mediaInput) {
+        let debounce;
+        mediaInput.addEventListener('input', () => {
+            clearTimeout(debounce);
+            debounce = setTimeout(() => {
+                const url = mediaInput.value.trim();
+                if (url && (url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') || url.endsWith('.webp') || url.includes('cloudinary') || url.includes('imgur'))) {
+                    previewImg.src = url;
+                    previewContainer.classList.remove('hidden');
+                    previewImg.onerror = () => previewContainer.classList.add('hidden');
+                } else {
+                    previewContainer.classList.add('hidden');
+                }
+            }, 500);
+        });
+    }
+
+    function loadTemplate(id) {
+        if (!id) return;
+        fetch('/api/template/' + id)
+            .then(r => r.json())
+            .then(d => {
+                const field = document.getElementById('caption-field');
+                let text = d.caption_template || '';
+                if (d.hashtags && d.hashtags.length) text += '\n\n' + d.hashtags.map(h => h.startsWith('#') ? h : '#'+h).join(' ');
+                field.value = text;
+                charCount.textContent = text.length;
+            });
+    }
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — InstaManager{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stat Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 mb-8">
+    <div class="stat-card group">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-brand-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+        </div>
+        <p class="text-3xl font-bold text-white">{{ total }}</p>
+        <p class="text-sm text-gray-400 mt-1">Total Accounts</p>
+    </div>
+    <div class="stat-card group">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            </div>
+        </div>
+        <p class="text-3xl font-bold text-emerald-400">{{ healthy }}</p>
+        <p class="text-sm text-gray-400 mt-1">Healthy Tokens</p>
+    </div>
+    <div class="stat-card group">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+        </div>
+        <p class="text-3xl font-bold text-amber-400">{{ warning }}</p>
+        <p class="text-sm text-gray-400 mt-1">Expiring Soon</p>
+    </div>
+    <div class="stat-card group">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+        </div>
+        <p class="text-3xl font-bold text-red-400">{{ expired }}</p>
+        <p class="text-sm text-gray-400 mt-1">Expired</p>
+    </div>
+    <div class="stat-card group">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </div>
+        </div>
+        <p class="text-3xl font-bold text-blue-400">{{ published_today }}</p>
+        <p class="text-sm text-gray-400 mt-1">Published Today</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Account Health -->
+    <div class="glass-card">
+        <h3 class="text-lg font-semibold mb-4">Account Health</h3>
+        {% if accounts %}
+        <div class="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+            {% for acc in accounts %}
+            <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
+                <div class="flex items-center gap-3">
+                    {% if acc.profile_picture_url %}
+                    <img src="{{ acc.profile_picture_url }}" class="w-9 h-9 rounded-full object-cover" alt="{{ acc.ig_username }}">
+                    {% else %}
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-sm font-bold">{{ acc.ig_username[0]|upper }}</div>
+                    {% endif %}
+                    <div>
+                        <span class="font-medium text-sm">@{{ acc.ig_username }}</span>
+                        <p class="text-[10px] text-gray-500">
+                            {% if acc.token_days_remaining is not none %}
+                            {{ acc.token_days_remaining }} days remaining
+                            {% else %}
+                            Token expiry unknown
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <span class="status-badge status-{{ acc.token_health }}">{{ acc.token_health|title }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-center py-8 text-gray-500">No accounts yet. <a href="{{ url_for('main.accounts') }}" class="text-brand-400">Connect one →</a></p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="glass-card">
+        <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
+        {% if recent_posts %}
+        <div class="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+            {% for post in recent_posts %}
+            <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate">{{ post.caption[:50] or 'No caption' }}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">{{ post.media_type }} · @{{ post.account.ig_username if post.account else 'N/A' }}</p>
+                </div>
+                <span class="status-badge status-{{ post.status|lower }}">{{ post.status }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-center py-8 text-gray-500">No posts yet. <a href="{{ url_for('main.composer') }}" class="text-brand-400">Create one →</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

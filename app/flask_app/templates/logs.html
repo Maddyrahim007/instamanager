@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Live Logs — InstaManager{% endblock %}
+{% block page_title %}Live Logs{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            Application Logs
+        </h3>
+        <div class="flex gap-2">
+            <button onclick="refreshLogs()" class="btn-secondary text-xs">↻ Refresh</button>
+            <button onclick="clearLogDisplay()" class="btn-secondary text-xs">Clear</button>
+        </div>
+    </div>
+    <div id="log-container" class="bg-surface-950 rounded-xl p-4 h-[500px] overflow-y-auto custom-scrollbar font-mono text-xs space-y-0.5">
+        <p class="text-gray-600">Loading logs...</p>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function refreshLogs() {
+    fetch('/api/logs?n=200')
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('log-container');
+            el.innerHTML = '';
+            if (!data.lines.length) {
+                el.innerHTML = '<p class="text-gray-600">No logs yet.</p>';
+                return;
+            }
+            data.lines.forEach(line => {
+                const p = document.createElement('p');
+                p.textContent = line.trim();
+                if (line.includes('ERROR')) p.className = 'text-red-400';
+                else if (line.includes('WARNING')) p.className = 'text-amber-400';
+                else if (line.includes('INFO')) p.className = 'text-gray-400';
+                else p.className = 'text-gray-500';
+                el.appendChild(p);
+            });
+            el.scrollTop = el.scrollHeight;
+        });
+}
+
+function clearLogDisplay() {
+    document.getElementById('log-container').innerHTML = '<p class="text-gray-600">Log display cleared.</p>';
+}
+
+// Auto-refresh every 5 seconds
+refreshLogs();
+setInterval(refreshLogs, 5000);
+</script>
+{% endblock %}
+{% endblock %}

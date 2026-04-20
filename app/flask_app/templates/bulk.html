@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Bulk Post — InstaManager{% endblock %}
+{% block page_title %}Bulk Post{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Config Panel -->
+    <div class="space-y-5">
+        <div class="glass-card">
+            <h3 class="text-lg font-semibold mb-4">Media URL</h3>
+            <p class="text-xs text-gray-500 mb-3">
+                Enter a public URL for the image/video to post across all selected accounts.
+            </p>
+            <input type="url" id="bulk-media-url" placeholder="https://example.com/your-image.jpg"
+                class="form-input" required>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="text-lg font-semibold mb-4">Caption & Template</h3>
+            <select id="bulk-template" class="form-input text-sm mb-3" onchange="loadBulkTemplate(this.value)">
+                <option value="">— No Template —</option>
+                {% for t in templates %}
+                <option value="{{ t.id }}">{{ t.name }}</option>
+                {% endfor %}
+            </select>
+            <textarea id="bulk-caption" rows="4" placeholder="Caption for all accounts..." class="form-input resize-none"></textarea>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="text-lg font-semibold mb-4">Media Type</h3>
+            <select id="bulk-media-type" class="form-input">
+                <option value="IMAGE">📷 Image</option>
+                <option value="VIDEO">🎥 Video</option>
+                <option value="REELS">🎬 Reel</option>
+                <option value="STORIES">📱 Story</option>
+            </select>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="text-lg font-semibold mb-4">Select Accounts</h3>
+            <div class="flex gap-2 mb-3">
+                <button type="button" onclick="toggleAllAccounts(true)" class="btn-secondary text-xs">Select All</button>
+                <button type="button" onclick="toggleAllAccounts(false)" class="btn-secondary text-xs">Deselect All</button>
+            </div>
+            <div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                {% for acc in accounts %}
+                <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
+                    <input type="checkbox" class="bulk-account-cb accent-brand-500" value="{{ acc.id }}" data-username="{{ acc.ig_username }}">
+                    {% if acc.profile_picture_url %}
+                    <img src="{{ acc.profile_picture_url }}" class="w-7 h-7 rounded-full object-cover" alt="">
+                    {% else %}
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-xs font-bold">{{ acc.ig_username[0]|upper }}</div>
+                    {% endif %}
+                    <span class="text-sm">@{{ acc.ig_username }}</span>
+                    <span class="ml-auto status-badge status-{{ acc.token_health }} text-[10px]">{{ acc.token_health }}</span>
+                </label>
+                {% else %}
+                <p class="text-sm text-gray-500 text-center py-4">No accounts available.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <button type="button" id="start-bulk-btn" onclick="startBulkPost()" class="btn-primary w-full py-3 text-base">🚀 Start Bulk Post</button>
+    </div>
+
+    <!-- Live Progress Console -->
+    <div class="glass-card lg:sticky lg:top-24 h-fit">
+        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <div id="bulk-indicator" class="w-2 h-2 rounded-full bg-gray-600"></div>
+            Live Progress
+        </h3>
+        <div id="bulk-console" class="bg-surface-950 rounded-xl p-4 h-96 overflow-y-auto custom-scrollbar font-mono text-xs space-y-1">
+            <p class="text-gray-600">Waiting to start...</p>
+        </div>
+        <div id="bulk-summary" class="mt-4 hidden">
+            <div class="flex gap-4 text-sm">
+                <span class="text-emerald-400">✓ <span id="bulk-success-count">0</span> success</span>
+                <span class="text-red-400">✗ <span id="bulk-fail-count">0</span> failed</span>
+                <span class="text-gray-400">Total: <span id="bulk-total-count">0</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function toggleAllAccounts(state) {
+    document.querySelectorAll('.bulk-account-cb').forEach(cb => cb.checked = state);
+}
+
+function loadBulkTemplate(id) {
+    if (!id) return;
+    fetch('/api/template/' + id).then(r => r.json()).then(d => {
+        let text = d.caption_template || '';
+        if (d.hashtags && d.hashtags.length) text += '\n\n' + d.hashtags.map(h => h.startsWith('#') ? h : '#'+h).join(' ');
+        document.getElementById('bulk-caption').value = text;
+    });
+}
+
+function startBulkPost() {
+    const accountIds = Array.from(document.querySelectorAll('.bulk-account-cb:checked')).map(cb => parseInt(cb.value));
+    const caption = document.getElementById('bulk-caption').value;
+    const mediaUrl = document.getElementById('bulk-media-url').value.trim();
+    const mediaType = document.getElementById('bulk-media-type').value;
+    const templateEl = document.getElementById('bulk-template');
+    const templateId = templateEl.value ? parseInt(templateEl.value) : null;
+
+    if (!accountIds.length) { alert('Select at least one account.'); return; }
+    if (!mediaUrl) { alert('Enter a public media URL.'); return; }
+
+    document.getElementById('start-bulk-btn').disabled = true;
+    document.getElementById('bulk-indicator').className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+    clearConsole();
+    appendConsole('🚀 Starting bulk post for ' + accountIds.length + ' account(s)...', 'info');
+    appendConsole('📎 Media: ' + mediaUrl, 'info');
+
+    window.socket.emit('start_bulk_post', {
+        account_ids: accountIds,
+        caption: caption,
+        media_url: mediaUrl,
+        media_type: mediaType,
+        template_id: templateId
+    });
+}
+
+window.socket.on('bulk_started', function(data) {
+    appendConsole('📋 Job #' + data.job_id + ' started — ' + data.total + ' accounts', 'info');
+});
+
+window.socket.on('bulk_progress', function(data) {
+    const icon = data.status === 'success' ? '✅' : data.status === 'uploading' ? '⏳' : '❌';
+    appendConsole(icon + ' [' + data.index + '] @' + data.username + ': ' + data.message, data.status);
+});
+
+window.socket.on('bulk_complete', function(data) {
+    document.getElementById('start-bulk-btn').disabled = false;
+    document.getElementById('bulk-indicator').className = 'w-2 h-2 rounded-full bg-emerald-400';
+    document.getElementById('bulk-summary').classList.remove('hidden');
+    document.getElementById('bulk-success-count').textContent = data.success;
+    document.getElementById('bulk-fail-count').textContent = data.failed;
+    document.getElementById('bulk-total-count').textContent = data.total;
+    appendConsole('🏁 Bulk post complete! ' + data.success + '/' + data.total + ' succeeded.', 'info');
+});
+
+window.socket.on('bulk_error', function(data) {
+    appendConsole('❌ Error: ' + data.message, 'failed');
+    document.getElementById('start-bulk-btn').disabled = false;
+});
+
+function clearConsole() {
+    document.getElementById('bulk-console').innerHTML = '';
+}
+
+function appendConsole(text, type) {
+    const el = document.getElementById('bulk-console');
+    const line = document.createElement('p');
+    line.textContent = text;
+    if (type === 'success') line.className = 'text-emerald-400';
+    else if (type === 'failed' || type === 'error') line.className = 'text-red-400';
+    else if (type === 'uploading') line.className = 'text-amber-400';
+    else line.className = 'text-gray-400';
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+}
+</script>
+{% endblock %}
+{% endblock %}

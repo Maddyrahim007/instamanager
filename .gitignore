@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Environment / Sensitive
+.env
+.flaskenv
+SECRET_KEY
+ENCRYPTION_KEY
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Media / Uploads
+media/
+sessions/
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store

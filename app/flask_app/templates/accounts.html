@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Accounts — InstaManager{% endblock %}
+{% block page_title %}Connected Accounts{% endblock %}
+
+{% block content %}
+<!-- Connect New Account -->
+<div class="glass-card mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">Connect Instagram Accounts</h3>
+        <span class="text-xs text-gray-500">via Facebook OAuth 2.0</span>
+    </div>
+    <p class="text-sm text-gray-400 mb-5">
+        Connect your Instagram Business or Creator accounts through Facebook Login.
+        Your account must be linked to a Facebook Page.
+    </p>
+    {% if meta_configured %}
+    <a href="{{ url_for('auth.facebook_login') }}" id="connect-facebook-btn"
+       class="inline-flex items-center gap-3 px-6 py-3 bg-[#1877F2] hover:bg-[#166FE5] text-white font-semibold rounded-xl transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-500/20">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Connect with Facebook
+    </a>
+    {% else %}
+    <div class="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-sm text-amber-300">
+        ⚠️ Meta App not configured. Set <code class="bg-white/5 px-1 rounded">META_APP_ID</code> and <code class="bg-white/5 px-1 rounded">META_APP_SECRET</code> in your <code class="bg-white/5 px-1 rounded">.env</code> file.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Account Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+    {% for acc in accounts %}
+    <div class="glass-card hover:border-brand-500/30 transition-all duration-300 group">
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+                {% if acc.profile_picture_url %}
+                <img src="{{ acc.profile_picture_url }}" class="w-12 h-12 rounded-xl object-cover shadow-lg group-hover:scale-110 transition-transform" alt="{{ acc.ig_username }}">
+                {% else %}
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-lg font-bold shadow-lg shadow-brand-500/20 group-hover:scale-110 transition-transform">
+                    {{ acc.ig_username[0]|upper }}
+                </div>
+                {% endif %}
+                <div>
+                    <p class="font-semibold">@{{ acc.ig_username }}</p>
+                    <p class="text-xs text-gray-500">{{ acc.fb_page_name or 'Facebook Page' }}</p>
+                </div>
+            </div>
+            <span class="status-badge status-{{ acc.token_health }}">{{ acc.token_health|title }}</span>
+        </div>
+
+        <!-- Token Info -->
+        <div class="mb-4 space-y-2">
+            <div class="flex justify-between text-xs">
+                <span class="text-gray-500">Token Expires</span>
+                <span class="{% if acc.token_health == 'healthy' %}text-emerald-400{% elif acc.token_health == 'warning' %}text-amber-400{% elif acc.token_health == 'critical' %}text-red-400{% else %}text-gray-400{% endif %}">
+                    {% if acc.token_days_remaining is not none %}
+                        {% if acc.token_days_remaining > 0 %}{{ acc.token_days_remaining }} days{% else %}Expired{% endif %}
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </span>
+            </div>
+            <!-- Progress bar for token life -->
+            {% if acc.token_days_remaining is not none %}
+            <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                {% set pct = [acc.token_days_remaining / 60 * 100, 100] | min %}
+                <div class="h-full rounded-full transition-all duration-500
+                    {% if acc.token_health == 'healthy' %}bg-emerald-500
+                    {% elif acc.token_health == 'warning' %}bg-amber-500
+                    {% else %}bg-red-500{% endif %}"
+                    style="width: {{ pct }}%"></div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center gap-2 text-xs text-gray-500 mb-4">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Connected {{ acc.connected_at.strftime('%b %d, %Y') if acc.connected_at else 'N/A' }}
+        </div>
+
+        <div class="flex gap-2">
+            <form action="{{ url_for('main.refresh_account_token', account_id=acc.id) }}" method="POST" class="flex-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-secondary w-full text-xs">🔄 Refresh Token</button>
+            </form>
+            <form action="{{ url_for('main.delete_account', account_id=acc.id) }}" method="POST" onsubmit="return confirm('Delete this account and all its posts?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-danger text-xs">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-span-full text-center py-12 text-gray-500">
+        <div class="w-16 h-16 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+        </div>
+        <p class="text-lg mb-2">No accounts connected yet</p>
+        <p class="text-sm">Use the "Connect with Facebook" button above to link your Instagram Business accounts.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Scheduler — InstaManager{% endblock %}
+{% block page_title %}Scheduled Posts{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold">Upcoming Posts</h3>
+        <a href="{{ url_for('main.composer') }}" class="btn-secondary text-xs">+ New Scheduled Post</a>
+    </div>
+
+    {% if posts %}
+    <div class="space-y-3">
+        {% for post in posts %}
+        <div class="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors border border-white/[0.04]">
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+                <!-- Account avatar -->
+                {% if post.account and post.account.profile_picture_url %}
+                <img src="{{ post.account.profile_picture_url }}" class="w-10 h-10 rounded-full object-cover flex-shrink-0" alt="">
+                {% elif post.account %}
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                    {{ post.account.ig_username[0]|upper }}
+                </div>
+                {% endif %}
+
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate">{{ post.caption[:60] or 'No caption' }}</p>
+                    <div class="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                        <span>@{{ post.account.ig_username if post.account else 'N/A' }}</span>
+                        <span>·</span>
+                        <span>{{ post.media_type }}</span>
+                        <span>·</span>
+                        <span class="text-brand-400 font-medium">
+                            📅 {{ post.scheduled_time.strftime('%b %d, %Y at %H:%M') if post.scheduled_time else 'No time set' }} UTC
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 ml-4">
+                <span class="status-badge status-pending">Scheduled</span>
+                <form action="{{ url_for('main.cancel_scheduled', post_id=post.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn-danger text-xs" onclick="return confirm('Cancel this scheduled post?')">Cancel</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12 text-gray-500">
+        <div class="w-16 h-16 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+        </div>
+        <p class="text-lg mb-2">No scheduled posts</p>
+        <p class="text-sm">Use the <a href="{{ url_for('main.composer') }}" class="text-brand-400">Composer</a> to schedule posts for later.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

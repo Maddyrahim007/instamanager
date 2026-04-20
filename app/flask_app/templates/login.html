@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="InstaManager — Login to your Instagram Business management dashboard">
+    <title>Login — InstaManager</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf',
+                        },
+                        surface: { 800: '#1e1b2e', 900: '#13111c', 950: '#0c0a14' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes glow { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.6; } }
+        .float-anim { animation: float 6s ease-in-out infinite; }
+        .glow-anim { animation: glow 4s ease-in-out infinite; }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-up { animation: slide-up 0.6s ease-out; }
+    </style>
+</head>
+
+<body class="bg-surface-950 text-gray-100 font-['Inter'] min-h-screen flex items-center justify-center relative overflow-hidden">
+
+    <!-- Background Orbs -->
+    <div class="absolute top-1/4 -left-32 w-96 h-96 bg-brand-600/20 rounded-full blur-[120px] glow-anim"></div>
+    <div class="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] glow-anim" style="animation-delay: 2s;"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-500/5 rounded-full blur-[150px]"></div>
+
+    <!-- Login Card -->
+    <div class="relative z-10 w-full max-w-md px-4 slide-up">
+
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600 shadow-2xl shadow-brand-500/30 mb-4 float-anim">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-brand-400 to-purple-400 bg-clip-text text-transparent">InstaManager</h1>
+            <p class="text-sm text-gray-500 mt-1">Professional Instagram Business Management</p>
+        </div>
+
+        <!-- Card -->
+        <div class="bg-white/[0.03] backdrop-blur-xl border border-white/[0.06] rounded-2xl p-8 shadow-2xl">
+
+            <h2 class="text-xl font-semibold mb-6 text-center">Welcome Back</h2>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="mb-4 space-y-2">
+                {% for category, message in messages %}
+                <div class="px-4 py-2 rounded-xl text-sm
+                    {% if category == 'error' %}bg-red-500/10 border border-red-500/20 text-red-300
+                    {% elif category == 'warning' %}bg-amber-500/10 border border-amber-500/20 text-amber-300
+                    {% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-300{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-5">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5 font-medium">Email Address</label>
+                    <input type="email" name="email" required placeholder="you@example.com"
+                        class="w-full px-4 py-3 bg-white/[0.03] border border-white/[0.08] rounded-xl text-gray-100 text-sm outline-none transition-all focus:border-brand-500/50 focus:shadow-[0_0_0_3px_rgba(217,70,239,0.1)]"
+                        id="login-email">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1.5 font-medium">Password</label>
+                    <input type="password" name="password" required placeholder="••••••••"
+                        class="w-full px-4 py-3 bg-white/[0.03] border border-white/[0.08] rounded-xl text-gray-100 text-sm outline-none transition-all focus:border-brand-500/50 focus:shadow-[0_0_0_3px_rgba(217,70,239,0.1)]"
+                        id="login-password">
+                </div>
+
+                <button type="submit" id="login-submit"
+                    class="w-full py-3 bg-gradient-to-r from-brand-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 hover:-translate-y-0.5 transition-all duration-200">
+                    Sign In
+                </button>
+            </form>
+        </div>
+
+        <p class="text-center text-sm text-gray-500 mt-6">
+            Don't have an account?
+            <a href="{{ url_for('auth.register') }}" class="text-brand-400 hover:text-brand-300 font-medium transition-colors">Create one</a>
+        </p>
+    </div>
+</body>
+</html>

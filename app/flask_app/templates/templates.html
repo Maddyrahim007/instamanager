@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Templates — InstaManager{% endblock %}
+{% block page_title %}Caption Templates{% endblock %}
+
+{% block content %}
+<!-- Add Template Form -->
+<div class="glass-card mb-6">
+    <h3 class="text-lg font-semibold mb-4">Create New Template</h3>
+    <form action="{{ url_for('main.add_template') }}" method="POST" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">Template Name</label>
+                <input type="text" name="name" required placeholder="e.g. Product Launch" class="form-input">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">Hashtags (comma-separated)</label>
+                <input type="text" name="hashtags" placeholder="#marketing, #social, #brand" class="form-input">
+            </div>
+        </div>
+        <div>
+            <label class="block text-xs text-gray-400 mb-1.5">Caption Template</label>
+            <textarea name="caption_template" rows="3" placeholder="Write your reusable caption here..." class="form-input resize-none"></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Create Template</button>
+    </form>
+</div>
+
+<!-- Template List -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+    {% for tmpl in templates %}
+    <div class="glass-card hover:border-brand-500/30 transition-all duration-300">
+        <div class="flex items-start justify-between mb-3">
+            <h4 class="font-semibold text-sm">{{ tmpl.name }}</h4>
+            <form action="{{ url_for('main.delete_template', template_id=tmpl.id) }}" method="POST" onsubmit="return confirm('Delete this template?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="text-gray-500 hover:text-red-400 transition-colors text-xs">✕</button>
+            </form>
+        </div>
+        <p class="text-xs text-gray-400 line-clamp-3 mb-3">{{ tmpl.caption_template or 'No caption text' }}</p>
+        {% set tags = tmpl.hashtags | default('[]') %}
+        <div class="flex flex-wrap gap-1">
+            {% for tag in tags | from_json if tags != '[]' %}
+            <span class="px-2 py-0.5 bg-brand-500/10 border border-brand-500/20 rounded-lg text-[10px] text-brand-300">{{ tag }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="col-span-full text-center py-12 text-gray-500">
+        <p class="text-lg mb-2">No templates yet</p>
+        <p class="text-sm">Create reusable caption templates to speed up your posting workflow.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
